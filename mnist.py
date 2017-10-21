@@ -1,6 +1,5 @@
 from  __future__ import print_function
 import os
-import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,6 +7,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torchvision import datasets, transforms
 import numpy as np
+import time
 
 # settings
 DATA_DIR = '../../repository/data/mnist'
@@ -50,8 +50,6 @@ class Net(nn.Module):
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax()
         self.use_cuda = cuda
-        if cuda:
-            self.cuda()
 
     def forward(self, x):
         x = self.relu(self.max_pool(self.conv1(x))) # 12 * 12 * 16
@@ -66,7 +64,8 @@ def evaluate(model, X):
     model.eval()
     if model.use_cuda:
         X = torch.from_numpy(X.astype(np.float32)).cuda()
-
+    else:
+        X = torch.from_numpy(X.astype(np.float32))
     X = Variable(X)
     output = model(X)
     output = F.softmax(output)
@@ -84,6 +83,8 @@ def evaluate(model, X):
 
 def build_model(enable_cuda):
     model = Net(enable_cuda)
+    if model.use_cuda:
+        model = model.cuda()
     if os.path.exists('mnist_params.pkl'):
         model.load_state_dict(torch.load('mnist_params.pkl'))
 
@@ -92,6 +93,7 @@ def build_model(enable_cuda):
 
 
 def train(model, optimizer, train_loader, num_epoches):
+    start_time = time.time()
     model.train()
 
     for epoch in range(num_epoches):
@@ -118,6 +120,7 @@ def train(model, optimizer, train_loader, num_epoches):
                     loss.data[0],
                     correct / target.size()[0]
                 ))
+    print('Time: ', time.time() - start_time)
 
 
 def model_eval(model, test_loader):
@@ -148,5 +151,3 @@ if __name__ == "__main__":
     model, optimizer = build_model(True)
     train(model, optimizer, train_loader, num_epoches)
     model_eval(model, test_loader)
-
-

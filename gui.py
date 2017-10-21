@@ -96,6 +96,14 @@ class DrawWidget(QWidget):
 class MAIN_Window(QMainWindow):
     def __init__(self):
         super().__init__()
+        enable_cuda = False
+        if torch.cuda.is_available():
+            enable_cuda = True
+        self.model = Net(enable_cuda)
+        if self.model.use_cuda:
+            self.model = self.model.cuda()
+        if os.path.exists('mnist_params.pkl'):
+            self.model.load_state_dict(torch.load('mnist_params.pkl'))
         self.initUI()
 
     def initUI(self):
@@ -194,12 +202,6 @@ class MAIN_Window(QMainWindow):
     def calc(self):
         self.draw_widget.pix.save('test.jpg', 'JPG')
         self.text_edit.setText('')
-        enable_cuda = False
-        if torch.cuda.is_available():
-            enable_cuda = True
-        self.model = Net(enable_cuda)
-        if os.path.exists('mnist_params.pkl'):
-            self.model.load_state_dict(torch.load('mnist_params.pkl'))
 
         img = Image.open('test.jpg').convert('L')
         img = img.resize((28, 28))
