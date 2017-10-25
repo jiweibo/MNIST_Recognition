@@ -8,6 +8,7 @@ from torch.autograd import Variable
 from torchvision import datasets, transforms
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 
 # settings
 DATA_DIR = '../../repository/data/mnist'
@@ -120,6 +121,7 @@ def train(model, optimizer, train_loader, num_epoches):
                     loss.data[0],
                     correct / target.size()[0]
                 ))
+    torch.save(model.state_dict(), 'mnist_params.pkl')
     print('Time: ', time.time() - start_time)
 
 
@@ -127,6 +129,9 @@ def model_eval(model, test_loader):
     model.eval()
     test_loss = 0
     correct = 0
+    error_data = []
+    error_rlabel = []
+    error_flabel = []
     for data, target in test_loader:
         if model.use_cuda:
             data, target = data.cuda(), target.cuda()
@@ -137,6 +142,14 @@ def model_eval(model, test_loader):
         pred = output.data.max(dim=1)[1]
         correct += pred.eq(target.data).cpu().sum()
 
+        # Error Analysis
+        error_idx = 1 - pred.eq(target.data).cpu().numpy()
+        if np.sum(error_idx) > 0:
+            error_data.append(data.data.cpu().numpy()[error_idx==1])
+            error_flabel.append(pred.cpu().numpy()[error_idx==1])
+            error_rlabel.append(target.data.cpu().numpy()[error_idx==1])
+
+    show_samples(error_data, error_rlabel, error_flabel)
     test_loss /= len(test_loader)
     print('\nTest set: Average loss : {:.4f}, Accuracy: {}/{} ({:.4f}%)\n'.format(
         test_loss,
@@ -144,10 +157,20 @@ def model_eval(model, test_loader):
         100. * correct / len(test_loader.dataset)
     ))
 
-    torch.save(model.state_dict(), 'mnist_params.pkl')
+
+
+def show_samples(data, label, pred):
+    fig, axes = plt.subplots(figsize=(28,28), nrows=6, ncols=6)
+    for ax, img, lb, pr in zip(axes.flatten(), data, label, pred):
+        ax.xaxis.set_visible(False)
+        ax.yaxis.set_visible(False)
+        ax.imshow(img[0].reshape(28,28), cmap='gray')
+        ax.set_title('true: {}---pred: {}'.format(lb[0], pr[0]))
+    plt.savefig('error_classification.jpg')
+    plt.show()
 
 
 if __name__ == "__main__":
-    model, optimizer = build_model(True)
-    train(model, optimizer, train_loader, num_epoches)
+    model, optimizer = build_model(enable_cuda)
+    # train(model, optimizer, train_loader, num_epoches)
     model_eval(model, test_loader)
