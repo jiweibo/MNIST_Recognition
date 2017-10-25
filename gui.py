@@ -34,7 +34,7 @@ class DrawWidget(QWidget):
         self.start_pos = QPoint()
         self.end_pos = QPoint()
         self.init_style = Qt.SolidLine
-        self.init_weight = 15
+        self.init_weight = 10
         self.init_color = QColor(Qt.black)
 
         self.setLayout(self.layout)
@@ -151,7 +151,7 @@ class MAIN_Window(QMainWindow):
 
         self.widthLabel = QLabel('Line Width: ')
         self.width_spin_box = QSpinBox()
-        self.width_spin_box.setValue(15)
+        self.width_spin_box.setValue(10)
         self.width_spin_box.valueChanged.connect(self.set_width)
 
         self.colorbtn = QToolButton()
@@ -199,16 +199,44 @@ class MAIN_Window(QMainWindow):
     def set_width(self, w):
         self.draw_widget.set_width(w)
 
+    # reference : https://zhuanlan.zhihu.com/p/30120447
+    def judge_edge(self, img, length, flag, val=0):
+        size = [-1, -1]
+        for i in range(length):
+            if flag == 'row':
+                line1 = img[i, img[i, :] > val]
+                line2 = img[length - 1 - i, img[length - 1 - i, :] > val]
+            else:
+                line1 = img[img[:, i] > val, i]
+                line2 = img[img[:, length - i - 1] > val, length - 1 - i]
+            if len(line1) > 0 and size[0] == -1:
+                size[0] = i
+            if len(line2) > 0 and size[1] == -1:
+                size[1] = length - i - 1
+            if size[0] != -1 and size[1] != -1:
+                return size
+        return [0, length]
+
+    def crop(self, img):
+        height = img.shape[0]
+        width = img.shape[1]
+        size = []
+        size.append(self.judge_edge(img, height, 'row', val=0))
+        size.append(self.judge_edge(img, width, 'column', val=0))
+        return img[max(size[0][0]-10, 0):min(size[0][1] + 10, height),
+               max(size[1][0]-10, 0):min(size[1][1] + 10, width)]
+
     def calc(self):
         self.draw_widget.pix.save('test.jpg', 'JPG')
         self.text_edit.setText('')
 
         img = Image.open('test.jpg').convert('L')
-        img = img.resize((28, 28))
         img = -1 * ((np.array(img) / 255.) * 2 - 1)
-        img = img.reshape((1, 1, 28, 28))
+        img = self.crop(img)
+        img = Image.fromarray(img).resize((28, 28))
+        img = np.array(img).reshape((1, 1, 28, 28))
 
-        # plt.imshow(img.reshape((28, 28)), cmap='gray')
+        # plt.imshow(img.reshape(28, 28), cmap='gray')
         # plt.show()
 
         outut, pred = evaluate(self.model, img)
