@@ -19,22 +19,21 @@ batch_size = 64
 num_epoches = 10
 learning_rate = 1e-3
 
-
 # datasets
 transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize(mean=(0.5 ,0.5 ,0.5), std=(0.5, 0.5, 0.5))
+    transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 ])
 
 train_loader = torch.utils.data.DataLoader(
-    datasets.MNIST(DATA_DIR, train=True, download=False, transform=transform),
-    batch_size = batch_size,
+    datasets.MNIST(DATA_DIR, train=True, download=True, transform=transform),
+    batch_size=batch_size,
     shuffle=True
 )
 
 test_loader = torch.utils.data.DataLoader(
     datasets.MNIST(DATA_DIR, train=False, download=False, transform=transform),
-    batch_size = batch_size,
+    batch_size=batch_size,
     shuffle=False
 )
 
@@ -53,11 +52,11 @@ class Net(nn.Module):
         self.use_cuda = cuda
 
     def forward(self, x):
-        x = self.relu(self.max_pool(self.conv1(x))) # 12 * 12 * 16
-        x = self.relu(self.conv2(x)) # 8 * 8 *64
-        x = x.view(-1, 64 * 64) # flatten
-        x = self.dropout(self.relu(self.fc1(x))) # size * 84
-        x = self.fc2(x) # size * 10
+        x = self.relu(self.max_pool(self.conv1(x)))  # 12 * 12 * 16
+        x = self.relu(self.conv2(x))  # 8 * 8 *64
+        x = x.view(-1, 64 * 64)  # flatten
+        x = self.dropout(self.relu(self.fc1(x)))  # size * 84
+        x = self.fc2(x)  # size * 10
         return F.log_softmax(x)
 
 
@@ -145,9 +144,9 @@ def model_eval(model, test_loader):
         # Error Analysis
         error_idx = 1 - pred.eq(target.data).cpu().numpy()
         if np.sum(error_idx) > 0:
-            error_data.append(data.data.cpu().numpy()[error_idx==1])
-            error_flabel.append(pred.cpu().numpy()[error_idx==1])
-            error_rlabel.append(target.data.cpu().numpy()[error_idx==1])
+            error_data.append(data.data.cpu().numpy()[error_idx == 1])
+            error_flabel.append(pred.cpu().numpy()[error_idx == 1])
+            error_rlabel.append(target.data.cpu().numpy()[error_idx == 1])
 
     show_samples(error_data, error_rlabel, error_flabel)
     test_loss /= len(test_loader)
@@ -158,13 +157,12 @@ def model_eval(model, test_loader):
     ))
 
 
-
 def show_samples(data, label, pred):
-    fig, axes = plt.subplots(figsize=(28,28), nrows=6, ncols=6)
+    fig, axes = plt.subplots(figsize=(28, 28), nrows=6, ncols=6)
     for ax, img, lb, pr in zip(axes.flatten(), data, label, pred):
         ax.xaxis.set_visible(False)
         ax.yaxis.set_visible(False)
-        ax.imshow(img[0].reshape(28,28), cmap='gray')
+        ax.imshow(img[0].reshape(28, 28), cmap='gray')
         ax.set_title('true: {}---pred: {}'.format(lb[0], pr[0]))
     plt.savefig('error_classification.jpg')
     plt.show()
